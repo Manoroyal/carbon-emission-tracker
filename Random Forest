@@ -1,0 +1,48 @@
+# ==============================
+# STEP 1: IMPORT LIBRARIES
+# ==============================
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+
+# ==============================
+# STEP 2: LOAD DATASET
+# ==============================
+# Make sure file name is EXACT
+data = pd.read_csv("Crop.csv")
+
+print("✅ Dataset Loaded Successfully")
+print("Columns:", data.columns)
+
+# ==============================
+# STEP 3: PREPARE DATA
+# ==============================
+X = data[['N', 'P', 'K', 'ph']]
+y = data['label']
+
+# ==============================
+# STEP 4: TRAIN MODEL
+# ==============================
+model = RandomForestClassifier()
+model.fit(X, y)
+
+print("✅ Model Trained Successfully")
+
+# ==============================
+# STEP 5: USER INPUT
+# ==============================
+print("\nEnter Soil Values:")
+
+N = float(input("Nitrogen (N): "))
+P = float(input("Phosphorus (P): "))
+K = float(input("Potassium (K): "))
+ph = float(input("pH value: "))
+
+# ==============================
+# STEP 6: PREDICTION
+# ==============================
+prediction = model.predict([[N, P, K, ph]])
+
+# ==============================
+# STEP 7: OUTPUT
+# ==============================
+print("\n🌱 Recommended Crop:", prediction[0])
