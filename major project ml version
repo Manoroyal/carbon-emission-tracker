@@ -1,0 +1,105 @@
+# ==============================
+# STEP 1: Import Libraries
+# ==============================
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+
+# ==============================
+# STEP 2: Load Datasets
+# ==============================
+crop_data = pd.read_csv("Crop.csv")
+market_data = pd.read_csv("MIXED MARKET DATASET.csv")
+
+# ==============================
+# STEP 3: Clean Column Names
+# ==============================
+crop_data.columns = crop_data.columns.str.lower()
+market_data.columns = market_data.columns.str.lower()
+
+if 'humidity' in crop_data.columns:
+    crop_data = crop_data.rename(columns={'humidity': 'moisture'})
+
+if 'commodity' in market_data.columns:
+    market_data = market_data.rename(columns={'commodity': 'crop'})
+
+if 'crop_name' in market_data.columns:
+    market_data = market_data.rename(columns={'crop_name': 'crop'})
+
+# ==============================
+# STEP 4: Strong Cleaning
+# ==============================
+crop_data['label'] = crop_data['label'].astype(str).str.lower().str.strip()
+crop_data['label'] = crop_data['label'].str.replace(r'\s+', '', regex=True)
+
+market_data['crop'] = market_data['crop'].astype(str).str.lower().str.strip()
+market_data['crop'] = market_data['crop'].str.replace(r'\s+', '', regex=True)
+
+# ==============================
+# STEP 5: Keep Common Crops
+# ==============================
+common_crops = set(crop_data['label']).intersection(set(market_data['crop']))
+crop_data = crop_data[crop_data['label'].isin(common_crops)]
+
+# ==============================
+# STEP 6: Prepare Data
+# ==============================
+X = crop_data[['n', 'p', 'k', 'moisture', 'ph']]
+y = crop_data['label']
+
+# ==============================
+# STEP 7: Train Model
+# ==============================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=100)
+model.fit(X_train, y_train)
+
+# ==============================
+# STEP 8: User Input
+# ==============================
+N = int(input("Enter Nitrogen (N): "))
+P = int(input("Enter Phosphorus (P): "))
+K = int(input("Enter Potassium (K): "))
+moisture = float(input("Enter Moisture (%): "))
+ph = float(input("Enter pH: "))
+
+input_data = pd.DataFrame([[N, P, K, moisture, ph]],
+                          columns=X.columns)
+
+# ==============================
+# STEP 9: Predict Top Crops
+# ==============================
+probs = model.predict_proba(input_data)
+
+top_indices = probs[0].argsort()[-3:][::-1]
+top_crops = model.classes_[top_indices]
+
+top_crops = [crop.lower().strip().replace(" ", "") for crop in top_crops]
+
+print("\nTop Suitable Crops:", top_crops)
+
+# ==============================
+# STEP 10: Production Analysis
+# ==============================
+filtered = market_data[market_data['crop'].isin(top_crops)]
+
+production_count = filtered['crop'].value_counts().reset_index()
+production_count.columns = ['crop', 'count']
+
+# ==============================
+# STEP 11: Final Output
+# ==============================
+if not production_count.empty:
+    best_crop = production_count.sort_values(by='count', ascending=False).iloc[0]
+
+    print("\n--- FINAL RESULT ---")
+    print("Most Suitable Crops:", top_crops)
+    print("Most Commonly Produced Crop:", best_crop['crop'])
+else:
+    print("\n--- FINAL RESULT ---")
+    print("Most Suitable Crops:", top_crops)
+    print("No production data available for these crops.")
+    print("Recommended Crop (Soil-Based):", top_crops[0])
