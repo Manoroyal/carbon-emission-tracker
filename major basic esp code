@@ -1,0 +1,115 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <HardwareSerial.h>
+
+HardwareSerial mod(2);
+WebServer server(80);
+
+#define RE_DE 4
+
+// 🔹 WiFi credentials
+const char* ssid = "realme";
+const char* password = "01234567";
+
+// 🔹 Modbus request
+byte request[] = {
+  0x01, 0x03, 0x00, 0x00,
+  0x00, 0x07, 0x04, 0x08
+};
+
+byte response[19];
+
+// 🔹 Sensor variables (global for web use)
+float moisture = 0;
+float temperature = 0;
+int ec = 0;
+float ph = 0;
+int nitrogen = 0;
+int phosphorus = 0;
+int potassium = 0;
+
+// 🌐 Web page
+void handleRoot() {
+  String html = "<html><head><title>Soil Monitor</title></head><body>";
+  html += "<h1>7-in-1 Soil Sensor</h1>";
+
+  html += "<p>Moisture: " + String(moisture) + " %</p>";
+  html += "<p>Temperature: " + String(temperature) + " C</p>";
+  html += "<p>pH: " + String(ph) + "</p>";
+  html += "<p>EC: " + String(ec) + "</p>";
+  html += "<p>Nitrogen: " + String(nitrogen) + "</p>";
+  html += "<p>Phosphorus: " + String(phosphorus) + "</p>";
+  html += "<p>Potassium: " + String(potassium) + "</p>";
+
+  html += "</body></html>";
+
+  server.send(200, "text/html", html);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(RE_DE, OUTPUT);
+  digitalWrite(RE_DE, LOW);
+
+  mod.begin(4800, SERIAL_8N1, 16, 17);
+
+  // 🌐 Connect WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConnected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  // 🌐 Start server
+  server.on("/", handleRoot);
+  server.begin();
+}
+
+void loop() {
+
+  // 🔹 Read sensor (same as your code)
+  digitalWrite(RE_DE, HIGH);
+  delay(10);
+
+  mod.write(request, sizeof(request));
+  mod.flush();
+
+  digitalWrite(RE_DE, LOW);
+
+  delay(1000);
+
+  if (mod.available()) {
+
+    int i = 0;
+
+    while (mod.available() && i < 19) {
+      response[i] = mod.read();
+      i++;
+    }
+
+    if (i == 19) {
+
+      moisture = ((response[3] << 8) | response[4]) / 10.0;
+      temperature = ((response[5] << 8) | response[6]) / 10.0;
+      ec = (response[7] << 8) | response[8];
+      ph = ((response[9] << 8) | response[10]) / 10.0;
+      nitrogen = (response[11] << 8) | response[12];
+      phosphorus = (response[13] << 8) | response[14];
+      potassium = (response[15] << 8) | response[16];
+
+      Serial.println("Updated values");
+    }
+  }
+
+  // 🌐 Handle web requests
+  server.handleClient();
+
+  delay(2000);
+}
