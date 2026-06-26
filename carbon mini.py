@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import webbrowser
 from urllib.parse import parse_qs
 import sqlite3
 from datetime import datetime
@@ -34,16 +35,16 @@ def get_records():
     table = ""
 
     for r in rows:
-        table += f"""
-        <tr>
-        <td>{r[1]}</td>
-        <td>{r[2]}</td>
-        <td>{r[3]}</td>
-        <td>{r[4]}</td>
-        <td>{r[5]:.2f}</td>
-        <td>{r[6]}</td>
-        </tr>
-        """
+       table += f"""
+<tr>
+    <td>{r[1]:.1f}</td>
+    <td>{r[2].title()}</td>
+    <td>{r[3].title()}</td>
+    <td>{r[4]}</td>
+    <td>{r[5]:.2f}</td>
+    <td>{r[6]}</td>
+</tr>
+"""
 
     return table
 
@@ -121,30 +122,38 @@ class CarbonHandler(BaseHTTPRequestHandler):
         background:#176b87;
         transform:translateY(-2px);
         }}
+table{{
+    margin:auto;
+    margin-top:40px;
+    border-collapse:collapse;
+    width:90%;
+    background:white;
+    box-shadow:0 10px 20px rgba(0,0,0,0.2);
+    table-layout:fixed;
+}}
 
-        table {{
-        margin:auto;
-        margin-top:40px;
-        border-collapse:collapse;
-        width:80%;
-        background:white;
-        box-shadow:0 10px 20px rgba(0,0,0,0.2);
-        }}
+th{{
+    background:#2193b0;
+    color:white;
+    padding:12px;
+    border:1px solid #ddd;
+    text-align:center;
+}}
 
-        th {{
-        background:#2193b0;
-        color:white;
-        padding:10px;
-        }}
+td{{
+    padding:10px;
+    border:1px solid #ddd;
+    text-align:center;
+    word-wrap:break-word;
+}}
 
-        td {{
-        padding:8px;
-        border-bottom:1px solid #ddd;
-        }}
+tr:nth-child(even){{
+    background:#f9f9f9;
+}}
 
-        tr:hover {{
-        background:#f1f1f1;
-        }}
+tr:hover{{
+    background:#e8f6ff;
+}}
 
         </style>
 
@@ -192,15 +201,14 @@ class CarbonHandler(BaseHTTPRequestHandler):
 
         <table>
 
-        <tr>
-        <th>Distance</th>
-        <th>Mode</th>
-        <th>Fuel</th>
-        <th>CC</th>
-        <th>Emission (kg CO2)</th>
-        <th>Date & Time</th>
-        </tr>
-
+    <tr>
+    <th style="width:12%;">Distance (km)</th>
+    <th style="width:12%;">Mode</th>
+    <th style="width:12%;">Fuel</th>
+    <th style="width:12%;">Engine CC</th>
+    <th style="width:20%;">Emission (kg CO₂)</th>
+    <th style="width:32%;">Date & Time</th>
+    </tr>
         {records}
 
         </table>
@@ -327,8 +335,10 @@ class CarbonHandler(BaseHTTPRequestHandler):
         self.wfile.write(result.encode())
 
 
-server = HTTPServer(("localhost",PORT),CarbonHandler)
+server = HTTPServer(("localhost", PORT), CarbonHandler)
 
 print("Server running at http://localhost:8000")
+
+webbrowser.open("http://localhost:8000")
 
 server.serve_forever()
